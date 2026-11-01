@@ -13,7 +13,7 @@ function loadDocs(){
   if(docsPromise)return docsPromise;
   docsPromise=new Promise((resolve,reject)=>{
     const script=document.createElement('script');
-    script.src='assets/js/data-docs.js';
+    script.src='assets/js/data-docs.js?v=20261102b';
     script.onload=()=>{
       if(!window.XJ_DOCS||!window.XJ_DOCS.length){reject(new Error('典籍数据为空'));return;}
       D.docs=window.XJ_DOCS;
