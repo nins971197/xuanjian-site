@@ -6,6 +6,24 @@ const $ = (s,r=document)=>r.querySelector(s);
 const $$ = (s,r=document)=>Array.from(r.querySelectorAll(s));
 const esc = s => String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const COLORS = ['#6e858c','#87989d','#a6b5b9','#536970','#76999e','#5f747b','#8da3a8','#70868c'];
+let docsPromise=null;
+function loadDocs(){
+  if(D.docs&&D.docs.length)return Promise.resolve(D.docs);
+  if(window.XJ_DOCS&&window.XJ_DOCS.length){D.docs=window.XJ_DOCS;return Promise.resolve(D.docs);}
+  if(docsPromise)return docsPromise;
+  docsPromise=new Promise((resolve,reject)=>{
+    const script=document.createElement('script');
+    script.src='assets/js/data-docs.js';
+    script.onload=()=>{
+      if(!window.XJ_DOCS||!window.XJ_DOCS.length){reject(new Error('典籍数据为空'));return;}
+      D.docs=window.XJ_DOCS;
+      resolve(D.docs);
+    };
+    script.onerror=()=>reject(new Error('典籍数据加载失败'));
+    document.head.appendChild(script);
+  });
+  return docsPromise;
+}
 function hash(s){let h=0;for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))|0;return Math.abs(h);}
 function colorFor(s){return COLORS[hash(s||'')%COLORS.length];}
 function avatar(name){return name.length<=3?name.slice(-2):name.slice(0,2);}
@@ -452,6 +470,13 @@ const LIB_CATS=['全部','总览','人物志','势力志','神通志','法器灵
 const LIB_DESC={'总览':'全书结构、时间锚点与总表','人物志':'人物小传与事件索引','势力志':'宗门、世家、王朝的沿革','神通志':'十八册神通谱系与修士索引','法器灵物台账':'兵器、甲衣、印信、丹药与灵材','考据':'专题考据、战役、制度与地理'};
 function renderLibrary(){
   if(!libDone){
+    if(!D.docs||!D.docs.length){
+      $('#libCats').innerHTML='';
+      $('#libCount').textContent='';
+      $('#libList').innerHTML='<div class="sr-empty">正在载入典籍库…</div>';
+      loadDocs().then(()=>renderLibrary()).catch(()=>{$('#libList').innerHTML='<div class="sr-empty">典籍库载入失败，请刷新页面重试。</div>';});
+      return;
+    }
     libDone=true;
     $('#libCats').innerHTML=LIB_CATS.map(c=>`<button class="lib-cat${c===state.libCat?' on':''}" data-c="${c}"><span>${c}<small>${esc(LIB_DESC[c]||'')}</small></span><b>${c==='全部'?D.docs.length:D.docs.filter(d=>d.cat===c).length}</b></button>`).join('');
     $('#libCats').onclick=e=>{const b=e.target.closest('.lib-cat');if(!b)return;state.libCat=b.dataset.c;state.libLimit=80;$$('#libCats .lib-cat').forEach(x=>x.classList.toggle('on',x===b));paintLib();};
@@ -838,6 +863,7 @@ function openSearch(){
   $('#searchPanel').classList.add('on');$('#searchPanel').setAttribute('aria-hidden','false');
   setTimeout(()=>$('#globalSearch').focus(),60);
   paintSearch('');
+  if(!D.docs||!D.docs.length)loadDocs().then(()=>{if($('#searchPanel').classList.contains('on'))paintSearch($('#globalSearch').value);}).catch(()=>{});
 }
 function closeSearch(){$('#searchPanel').classList.remove('on');$('#searchPanel').setAttribute('aria-hidden','true');}
 function paintSearch(q){
@@ -908,6 +934,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(e.key==='Enter'&&$('#searchPanel').classList.contains('on')){const first=$('#searchResults .sr');if(first)first.click();}
   });
   showView((location.hash||'#home').slice(1));
+  setTimeout(()=>loadDocs().catch(()=>{}),2500);
 });
 })();
 

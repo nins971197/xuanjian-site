@@ -24,7 +24,9 @@ https://nins971197.github.io/xuanjian-site/
 index.html
 assets/
   css/style.css
-  js/data.js      # 全部数据（535 篇典籍、409 人物、92 势力、109 名词、232 器物、71 族谱节点）
+  js/data.js      # 单文件构建与完整离线数据（535 篇典籍、409 人物、92 势力、109 名词、232 器物、71 族谱节点）
+  js/data-core.js # 在线站点首屏数据（不含典籍全文）
+  js/data-docs.js # 按需加载的 535 篇典籍
   js/app.js       # 路由、渲染、搜索、族谱、抽屉
 serve.ps1
 ```
