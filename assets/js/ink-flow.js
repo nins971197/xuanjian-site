@@ -513,6 +513,8 @@
   let heroVisible = true;
   let frameCount = 0;
   let animationFrame = 0;
+  let ambientNext = 0;
+  let lastHoverInk = 0;
 
   function releaseSimulation() {
     disposePair(velocity);
@@ -539,6 +541,8 @@
     if (!imageReady) return;
     const rect = canvas.getBoundingClientRect();
     if (!rect.width || !rect.height) return;
+    pointer.viewWidth = rect.width;
+    pointer.viewHeight = rect.height;
     updateImagePlacement();
 
     const area = rect.width * rect.height;
@@ -734,11 +738,23 @@
     pointer.previousY = pointer.y;
   }
 
+  function ambientInk(now) {
+    if (pointer.active || now < ambientNext) return;
+    const time = now * 0.00058;
+    const x = 0.67 + Math.sin(time * 0.83) * 0.13;
+    const y = 0.39 + Math.cos(time * 0.61) * 0.12;
+    const vx = 4.2 + Math.cos(time * 0.73) * 2.0;
+    const vy = Math.sin(time * 0.91) * 2.4;
+    addVelocity(x, y, vx, vy, 30);
+    ambientNext = now + 950;
+  }
+
   function stepFluid() {
     advect(velocity, Math.pow(0.88, 0.05));
     advect(density, Math.pow(0.99, 0.05));
     advect(temperature, Math.pow(0.70, 0.05));
     splatPointer();
+    ambientInk(performance.now());
     addDensity(simulationStep === 0 ? 1.0 : 0.009);
     applyBuoyancy();
     applyVorticity();
@@ -893,6 +909,17 @@
     pointer.viewHeight = position.height;
     pointer.x = position.x;
     pointer.y = position.y;
+    const now = performance.now();
+    if (!pointer.active && event.pointerType === "mouse" && now - lastHoverInk > 70) {
+      addVelocity(
+        position.x,
+        position.y,
+        Math.max(-60, Math.min(60, event.movementX * 15)),
+        Math.max(-60, Math.min(60, -event.movementY * 15)),
+        20,
+      );
+      lastHoverInk = now;
+    }
   }, { passive: true });
 
   function releasePointer() {
